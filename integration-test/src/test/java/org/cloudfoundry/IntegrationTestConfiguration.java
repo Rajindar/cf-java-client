@@ -85,7 +85,7 @@ public class IntegrationTestConfiguration {
                                                 @Value("${test.skipSslValidation:false}") Boolean skipSslValidation,
                                                 @Value("${test.proxyHost:}") String proxyHost,
                                                 @Value("${test.proxyPassword:}") String proxyPassword,
-                                                @Value("${test.proxyPort:}") Integer proxyPort,
+                                                @Value("${test.proxyPort:8080}") Integer proxyPort,
                                                 @Value("${test.proxyUsername:}") String proxyUsername) {
 
         return SpringCloudFoundryClient.builder()

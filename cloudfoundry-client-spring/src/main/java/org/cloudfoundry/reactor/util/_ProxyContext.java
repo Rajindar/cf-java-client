@@ -16,38 +16,16 @@
 
 package org.cloudfoundry.reactor.util;
 
-import io.netty.channel.ChannelHandler;
-import io.netty.handler.proxy.HttpProxyHandler;
 import org.cloudfoundry.Nullable;
+import org.cloudfoundry.util.tuple.Consumer4;
 import org.immutables.value.Value;
 import org.springframework.util.StringUtils;
-
-import java.net.InetSocketAddress;
-import java.util.Optional;
 
 @Value.Immutable
 abstract class _ProxyContext {
 
     @Nullable
     abstract String getHost();
-
-    @Value.Derived
-    Optional<ChannelHandler> getHttpProxyHandler() {
-        if (StringUtils.hasText(getHost())) {
-            InetSocketAddress proxyAddress = new InetSocketAddress(getHost(), Optional.ofNullable(getPort()).orElse(8080));
-
-            HttpProxyHandler httpProxyHandler;
-            if (getUsername() != null) {
-                httpProxyHandler = new HttpProxyHandler(proxyAddress, getUsername(), getPassword());
-            } else {
-                httpProxyHandler = new HttpProxyHandler(proxyAddress);
-            }
-
-            return Optional.of(httpProxyHandler);
-        }
-
-        return Optional.empty();
-    }
 
     @Nullable
     abstract String getPassword();
@@ -57,4 +35,10 @@ abstract class _ProxyContext {
 
     @Nullable
     abstract String getUsername();
+
+    void ifConfigured(Consumer4<String, Integer, String, String> consumer) {
+        if (StringUtils.hasText(getHost())) {
+            consumer.accept(getHost(), getPort(), getUsername(), getPassword());
+        }
+    }
 }

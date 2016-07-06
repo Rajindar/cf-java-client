@@ -37,8 +37,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static reactor.io.netty.common.NettyHandlerNames.SslHandler;
-
 final class DefaultSslCertificateTruster implements SslCertificateTruster {
 
     private final Logger logger = LoggerFactory.getLogger("cloudfoundry-client.trust");
@@ -110,10 +108,13 @@ final class DefaultSslCertificateTruster implements SslCertificateTruster {
     }
 
     private static TcpClient getTcpClient(ProxyContext proxyContext, CertificateCollectingTrustManager collector, String host, int port) {
-        return TcpClient.create(ClientOptions.to(host, port)
-            .sslSupport()
-            .pipelineConfigurer(pipeline -> proxyContext.getHttpProxyHandler().ifPresent(handler -> pipeline.addBefore(SslHandler, null, handler)))
-            .sslConfigurer(ssl -> ssl.trustManager(new StaticTrustManagerFactory(collector))));
+        ClientOptions options = ClientOptions.to(host, port)
+            .sslSupport();
+
+        proxyContext.ifConfigured((proxyHost, proxyPort, username, password) -> options.proxy(ClientOptions.Proxy.HTTP, proxyHost, proxyPort, username, u -> password));
+        options.ssl().trustManager(new StaticTrustManagerFactory(collector));
+
+        return TcpClient.create(options);
     }
 
     private static X509TrustManager getTrustManager(TrustManagerFactory trustManagerFactory) {

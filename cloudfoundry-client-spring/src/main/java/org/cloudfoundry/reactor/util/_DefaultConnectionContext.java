@@ -22,14 +22,13 @@ import org.immutables.value.Value;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
+import reactor.io.netty.config.ClientOptions;
 import reactor.io.netty.config.HttpClientOptions;
 import reactor.io.netty.http.HttpClient;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
-
-import static reactor.io.netty.common.NettyHandlerNames.SslHandler;
 
 @Value.Immutable
 abstract class _DefaultConnectionContext implements ConnectionContext {
@@ -56,12 +55,15 @@ abstract class _DefaultConnectionContext implements ConnectionContext {
 
     @Value.Derived
     public HttpClient getHttpClient() {
-        return HttpClient.create(HttpClientOptions.create()
+        ClientOptions options = HttpClientOptions.create()
             .sslSupport()
             .sndbuf(SEND_BUFFER_SIZE)
-            .rcvbuf(RECEIVE_BUFFER_SIZE)
-            .pipelineConfigurer(pipeline -> getProxyContext().getHttpProxyHandler().ifPresent(handler -> pipeline.addBefore(SslHandler, null, handler)))
-            .sslConfigurer(ssl -> getSslCertificateTruster().ifPresent(trustManager -> ssl.trustManager(new StaticTrustManagerFactory(trustManager)))));
+            .rcvbuf(RECEIVE_BUFFER_SIZE);
+
+        getProxyContext().ifConfigured((proxyHost, proxyPort, username, password) -> options.proxy(ClientOptions.Proxy.HTTP, proxyHost, proxyPort, username, u -> password));
+        getSslCertificateTruster().ifPresent(trustManager -> options.ssl().trustManager(new StaticTrustManagerFactory(trustManager)));
+
+        return HttpClient.create(options);
     }
 
     @Value.Default
